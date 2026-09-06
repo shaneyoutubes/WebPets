@@ -1,11 +1,18 @@
-// SUPABASE CLIENT CONFIG
+// SUPABASE CLIENT (Optional initialization)
 const SUPABASE_URL = "https://utmzjbdubwwiwqizxtsb.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_Jg9XTAkUQM8Hpc6iUbWVJw__kYPaBgY";
-const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+let supabase = null;
+if (window.supabase && typeof window.supabase.createClient === "function") {
+  try {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  } catch (e) {
+    console.warn("Supabase init bypassed:", e);
+  }
+}
 
 let currentUser = null;
 
-// PET DATA & RNG ODDS
+// PET DATA & ODDS
 const PET_TABLE = [
   { name: "Common Slime", icon: "🟢", rarity: "COMMON", weight: 5000, color: "#a4b0be" },
   { name: "Loyal Pup", icon: "🐕", rarity: "UNCOMMON", weight: 2500, color: "#1dd1a1" },
@@ -30,7 +37,7 @@ const ITEM_POOL = {
   ]
 };
 
-// INITIAL DEFAULT STATE
+// INITIAL STATE
 let state = {
   coins: 100,
   playerLevel: 1,
@@ -40,47 +47,36 @@ let state = {
   isMissionRunning: false
 };
 
-// LOAD LOCAL SAVE INITIALLY
-const localSave = localStorage.getItem("rng_pet_save");
-if (localSave) state = Object.assign(state, JSON.parse(localSave));
+// LOAD SAVED STATE
+try {
+  const localSave = localStorage.getItem("rng_pet_save");
+  if (localSave) state = Object.assign(state, JSON.parse(localSave));
+} catch (e) {
+  console.warn("Local storage read error:", e);
+}
 
-// SYNC ENGINE
-async function saveState() {
-  localStorage.setItem("rng_pet_save", JSON.stringify(state));
+function saveState() {
+  try {
+    localStorage.setItem("rng_pet_save", JSON.stringify(state));
+  } catch (e) {}
 
   if (currentUser && supabase) {
-    await supabase.from("player_saves").upsert({
+    supabase.from("player_saves").upsert({
       user_id: currentUser.id,
       save_data: state,
       updated_at: new Date().toISOString()
-    });
-  }
-  render();
-}
-
-async function loadCloudSave(userId) {
-  if (!supabase) return;
-  const { data } = await supabase
-    .from("player_saves")
-    .select("save_data")
-    .eq("user_id", userId)
-    .single();
-
-  if (data && data.save_data) {
-    state = Object.assign(state, data.save_data);
-  } else {
-    await saveState();
+    }).catch(err => console.warn(err));
   }
   render();
 }
 
 function getTotalLuck() {
   let base = 1.0;
-  if (state.equippedGear) base += state.equippedGear.luckBoost;
+  if (state.equippedGear) base += (state.equippedGear.luckBoost || 0);
   return parseFloat(base.toFixed(2));
 }
 
-// PET HATCHING
+// PET ROLLING
 function rollPet() {
   const currentLuck = getTotalLuck();
   let totalWeight = 0;
@@ -111,15 +107,17 @@ function startMission(seconds, tier) {
   const progressBox = document.getElementById("progress-container");
   const statusText = document.getElementById("mission-status-text");
 
-  progressBox.style.display = "block";
-  statusText.innerText = "Exploring...";
-  statusText.style.color = "#00d2d3";
+  if (progressBox) progressBox.style.display = "block";
+  if (statusText) {
+    statusText.innerText = "Exploring...";
+    statusText.style.color = "#00d2d3";
+  }
 
   let elapsed = 0;
   const interval = setInterval(() => {
     elapsed += 0.2;
     const pct = Math.min(100, (elapsed / seconds) * 100);
-    progressBar.style.width = `${pct}%`;
+    if (progressBar) progressBar.style.width = `${pct}%`;
 
     if (elapsed >= seconds) {
       clearInterval(interval);
@@ -130,16 +128,21 @@ function startMission(seconds, tier) {
 
 function completeMission(tier) {
   state.isMissionRunning = false;
-  document.getElementById("progress-container").style.display = "none";
-  document.getElementById("mission-status-text").innerText = "Idle";
-  document.getElementById("mission-status-text").style.color = "#8395a7";
+  const progressBox = document.getElementById("progress-container");
+  const statusText = document.getElementById("mission-status-text");
+
+  if (progressBox) progressBox.style.display = "none";
+  if (statusText) {
+    statusText.innerText = "Idle";
+    statusText.style.color = "#8395a7";
+  }
 
   if (tier === "hard" && state.equippedGear && Math.random() < 0.05) {
-    alert(`⚠️ Disaster! Your ${state.equippedGear.name} was broken during the raid!`);
+    alert(`⚠️ Disaster! Your ${state.equippedGear.name} broke during the raid!`);
     state.equippedGear = null;
   }
 
-  const possibleItems = ITEM_POOL[tier];
+  const possibleItems = ITEM_POOL[tier] || ITEM_POOL.easy;
   const rolledItem = possibleItems[Math.floor(Math.random() * possibleItems.length)];
   const itemInstance = { ...rolledItem, id: Date.now() };
 
@@ -148,7 +151,7 @@ function completeMission(tier) {
   saveState();
 }
 
-// INVENTORY HANDLERS
+// INVENTORY INTERACTIONS
 window.equipItem = function(id) {
   const idx = state.inventory.findIndex(i => i.id === id);
   if (idx > -1) {
@@ -177,151 +180,112 @@ window.unequipGear = function() {
   }
 };
 
-// UI RENDER
+// RENDER FUNCTION
 function render() {
-  document.getElementById("coin-display").innerText = state.coins;
-  document.getElementById("luck-display").innerText = `${getTotalLuck()}x`;
-  document.getElementById("player-lvl").innerText = state.playerLevel;
+  const coinDisp = document.getElementById("coin-display");
+  const luckDisp = document.getElementById("luck-display");
+  const lvlDisp = document.getElementById("player-lvl");
+
+  if (coinDisp) coinDisp.innerText = state.coins;
+  if (luckDisp) luckDisp.innerText = `${getTotalLuck()}x`;
+  if (lvlDisp) lvlDisp.innerText = state.playerLevel;
 
   const hatchScreen = document.getElementById("hatch-screen");
   const petScreen = document.getElementById("active-pet-screen");
 
   if (state.activePet) {
-    hatchScreen.style.display = "none";
-    petScreen.style.display = "block";
-    document.getElementById("pet-sprite").innerText = state.activePet.icon;
-    document.getElementById("pet-name").innerText = state.activePet.name;
+    if (hatchScreen) hatchScreen.style.display = "none";
+    if (petScreen) petScreen.style.display = "block";
+    const sprite = document.getElementById("pet-sprite");
+    const pName = document.getElementById("pet-name");
     const badge = document.getElementById("pet-rarity");
-    badge.innerText = state.activePet.rarity;
-    badge.style.background = state.activePet.color;
+
+    if (sprite) sprite.innerText = state.activePet.icon;
+    if (pName) pName.innerText = state.activePet.name;
+    if (badge) {
+      badge.innerText = state.activePet.rarity;
+      badge.style.background = state.activePet.color;
+    }
   } else {
-    hatchScreen.style.display = "block";
-    petScreen.style.display = "none";
+    if (hatchScreen) hatchScreen.style.display = "block";
+    if (petScreen) petScreen.style.display = "none";
   }
 
   const gearSlot = document.getElementById("gear-slot-display");
-  if (state.equippedGear) {
-    gearSlot.innerHTML = `
-      <div>${state.equippedGear.icon} <strong>${state.equippedGear.name}</strong> (+${state.equippedGear.luckBoost}x Luck)</div>
-      <button onclick="unequipGear()" class="btn small-btn">Unequip</button>
-    `;
-  } else {
-    gearSlot.innerHTML = `<span class="slot-placeholder">Empty Gear Slot</span>`;
+  if (gearSlot) {
+    if (state.equippedGear) {
+      gearSlot.innerHTML = `
+        <div>${state.equippedGear.icon} <strong>${state.equippedGear.name}</strong> (+${state.equippedGear.luckBoost}x Luck)</div>
+        <button onclick="unequipGear()" class="btn small-btn">Unequip</button>
+      `;
+    } else {
+      gearSlot.innerHTML = `<span class="slot-placeholder">Empty Gear Slot</span>`;
+    }
   }
 
   const invGrid = document.getElementById("inventory-grid");
-  invGrid.innerHTML = "";
-  if (state.inventory.length === 0) {
-    invGrid.innerHTML = `<p class="subtext" style="grid-column: span 2; text-align: center;">Bag is empty. Complete missions for loot!</p>`;
-  }
-  state.inventory.forEach(item => {
-    const card = document.createElement("div");
-    card.className = "item-card";
-    card.innerHTML = `
-      <div>${item.icon} <strong>${item.name}</strong></div>
-      <div class="subtext">+${item.luckBoost}x Luck</div>
-      <div class="subtext">Value: ${item.sellPrice} 💰</div>
-      <div class="item-actions">
-        <button onclick="equipItem(${item.id})" class="btn" style="background: #10ac84; color: white;">Equip</button>
-        <button onclick="sellItem(${item.id})" class="btn" style="background: #e1b12c; color: #000;">Sell</button>
-      </div>
-    `;
-    invGrid.appendChild(card);
-  });
-}
-
-// EVENT LISTENERS
-document.getElementById("roll-btn").addEventListener("click", rollPet);
-document.getElementById("egg-btn").addEventListener("click", rollPet);
-
-document.getElementById("re-roll-btn").addEventListener("click", () => {
-  if (state.coins >= 100) {
-    state.coins -= 100;
-    rollPet();
-  } else {
-    alert("Need 100 coins to reroll!");
-  }
-});
-
-document.querySelectorAll(".mission-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    const time = parseInt(btn.dataset.time);
-    const tier = btn.dataset.tier;
-    startMission(time, tier);
-  });
-});
-
-// AUTH SYSTEM
-let isSignUpMode = false;
-const authModal = document.getElementById("auth-modal");
-const tabLogin = document.getElementById("tab-login");
-const tabSignup = document.getElementById("tab-signup");
-const submitBtn = document.getElementById("auth-submit-btn");
-const authMsg = document.getElementById("auth-msg");
-
-tabLogin.onclick = () => {
-  isSignUpMode = false;
-  tabLogin.classList.add("active");
-  tabSignup.classList.remove("active");
-  submitBtn.innerText = "Log In";
-};
-
-tabSignup.onclick = () => {
-  isSignUpMode = true;
-  tabSignup.classList.add("active");
-  tabLogin.classList.remove("active");
-  submitBtn.innerText = "Sign Up";
-};
-
-document.getElementById("open-auth-btn").onclick = async () => {
-  if (currentUser && supabase) {
-    await supabase.auth.signOut();
-    location.reload();
-  } else {
-    authModal.style.display = "flex";
-  }
-};
-
-document.getElementById("close-modal-btn").onclick = () => authModal.style.display = "none";
-document.getElementById("guest-dismiss-btn").onclick = () => authModal.style.display = "none";
-
-submitBtn.onclick = async () => {
-  if (!supabase) return;
-  const email = document.getElementById("auth-email").value.trim();
-  const password = document.getElementById("auth-password").value.trim();
-
-  if (!email || !password) {
-    authMsg.innerText = "Please provide both email and password.";
-    return;
-  }
-
-  authMsg.innerText = "Processing...";
-
-  if (isSignUpMode) {
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) authMsg.innerText = error.message;
-    else authMsg.innerText = "Verification sent! Check your email.";
-  } else {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) authMsg.innerText = error.message;
-    else authModal.style.display = "none";
-  }
-};
-
-if (supabase) {
-  supabase.auth.onAuthStateChange(async (event, session) => {
-    if (session && session.user) {
-      currentUser = session.user;
-      document.getElementById("account-status").innerHTML = `Logged in as <strong>${session.user.email}</strong>`;
-      document.getElementById("open-auth-btn").innerText = "Log Out";
-      authModal.style.display = "none";
-      await loadCloudSave(currentUser.id);
-    } else {
-      currentUser = null;
-      document.getElementById("account-status").innerHTML = `Playing as <strong>Guest</strong> (Local Only)`;
-      document.getElementById("open-auth-btn").innerText = "Log In / Sync";
+  if (invGrid) {
+    invGrid.innerHTML = "";
+    if (state.inventory.length === 0) {
+      invGrid.innerHTML = `<p class="subtext" style="grid-column: span 2; text-align: center;">Bag is empty. Complete missions for loot!</p>`;
     }
-  });
+    state.inventory.forEach(item => {
+      const card = document.createElement("div");
+      card.className = "item-card";
+      card.innerHTML = `
+        <div>${item.icon} <strong>${item.name}</strong></div>
+        <div class="subtext">+${item.luckBoost}x Luck</div>
+        <div class="subtext">Value: ${item.sellPrice} 💰</div>
+        <div class="item-actions">
+          <button onclick="equipItem(${item.id})" class="btn" style="background: #10ac84; color: white;">Equip</button>
+          <button onclick="sellItem(${item.id})" class="btn" style="background: #e1b12c; color: #000;">Sell</button>
+        </div>
+      `;
+      invGrid.appendChild(card);
+    });
+  }
 }
 
+// SAFE EVENT ATTACHMENTS
+document.addEventListener("DOMContentLoaded", () => {
+  const rollBtn = document.getElementById("roll-btn");
+  const eggBtn = document.getElementById("egg-btn");
+  const rerollBtn = document.getElementById("re-roll-btn");
+
+  if (rollBtn) rollBtn.addEventListener("click", rollPet);
+  if (eggBtn) eggBtn.addEventListener("click", rollPet);
+
+  if (rerollBtn) {
+    rerollBtn.addEventListener("click", () => {
+      if (state.coins >= 100) {
+        state.coins -= 100;
+        rollPet();
+      } else {
+        alert("Need 100 coins to reroll!");
+      }
+    });
+  }
+
+  document.querySelectorAll(".mission-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const time = parseInt(btn.dataset.time, 10);
+      const tier = btn.dataset.tier;
+      startMission(time, tier);
+    });
+  });
+
+  // Modal handlers
+  const authModal = document.getElementById("auth-modal");
+  const openAuth = document.getElementById("open-auth-btn");
+  const closeAuth = document.getElementById("close-modal-btn");
+  const guestBtn = document.getElementById("guest-dismiss-btn");
+
+  if (openAuth && authModal) openAuth.onclick = () => authModal.style.display = "flex";
+  if (closeAuth && authModal) closeAuth.onclick = () => authModal.style.display = "none";
+  if (guestBtn && authModal) guestBtn.onclick = () => authModal.style.display = "none";
+
+  render();
+});
+
+// Fallback initial render
 render();
