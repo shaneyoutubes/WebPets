@@ -1,12 +1,11 @@
-
-// SUPABASE CLIENT
+// SUPABASE CLIENT CONFIG
 const SUPABASE_URL = "https://utmzjbdubwwiwqizxtsb.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_Jg9XTAkUQM8Hpc6iUbWVJw__kYPaBgY";
 const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 let currentUser = null;
 
-// PET DATA & TABLES
+// PET DATA & RNG ODDS
 const PET_TABLE = [
   { name: "Common Slime", icon: "🟢", rarity: "COMMON", weight: 5000, color: "#a4b0be" },
   { name: "Loyal Pup", icon: "🐕", rarity: "UNCOMMON", weight: 2500, color: "#1dd1a1" },
