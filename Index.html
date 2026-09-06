@@ -1,0 +1,126 @@
+# <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>RNG Pet Expeditions</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <!-- AUTH MODAL -->
+  <div id="auth-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <button class="modal-close" id="close-modal-btn">✕</button>
+      <h2>Save Your Progress</h2>
+      <p class="subtext">Log in or register to sync your pet across devices.</p>
+
+      <div class="auth-tabs">
+        <button id="tab-login" class="tab-btn active">Log In</button>
+        <button id="tab-signup" class="tab-btn">Sign Up</button>
+      </div>
+
+      <input type="email" id="auth-email" placeholder="Enter your email" />
+      <input type="password" id="auth-password" placeholder="Enter your password" />
+
+      <button id="auth-submit-btn" class="btn primary-btn">Log In</button>
+      <button id="guest-dismiss-btn" class="btn text-btn">Continue as Guest</button>
+      <p id="auth-msg" class="auth-msg"></p>
+    </div>
+  </div>
+
+  <div class="game-shell">
+    <!-- ACCOUNT HEADER -->
+    <div class="account-header">
+      <div id="account-status">Playing as <strong>Guest</strong> (Local Only)</div>
+      <button id="open-auth-btn" class="btn small-btn">Log In / Sync</button>
+    </div>
+
+    <!-- TOP STATS BAR -->
+    <header class="top-bar">
+      <div class="stat-pill">💰 <span id="coin-display">100</span> Coins</div>
+      <div class="stat-pill">🍀 <span id="luck-display">1.0x</span> Luck</div>
+      <div class="stat-pill">⭐ Lvl <span id="player-lvl">1</span></div>
+    </header>
+
+    <!-- PET HATCH / ACTIVE PET SECTION -->
+    <section class="card pet-card">
+      <div id="hatch-screen">
+        <div class="egg-display" id="egg-btn">🥚</div>
+        <p class="hint-text">Tap the Egg to Hatch Your Pet</p>
+        <button id="roll-btn" class="btn primary-btn">Hatch Egg (Free)</button>
+      </div>
+
+      <div id="active-pet-screen" style="display: none;">
+        <div class="rarity-badge" id="pet-rarity">COMMON</div>
+        <div class="pet-sprite" id="pet-sprite">🐕</div>
+        <h2 id="pet-name">Puppy</h2>
+        <p class="pet-odds" id="pet-odds">1 in 2 (50%)</p>
+        <button id="re-roll-btn" class="btn small-btn">Reroll Egg (100 Coins)</button>
+      </div>
+    </section>
+
+    <!-- EQUIPPED GEAR SECTION -->
+    <section class="card gear-card">
+      <div class="card-header">
+        <h3>Equipped Gear</h3>
+        <span class="subtext">Boosts Drop Rate & XP</span>
+      </div>
+      <div class="gear-slot-row">
+        <div class="gear-slot" id="gear-slot-display">
+          <span class="slot-placeholder">Empty Gear Slot</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- EXPEDITION / MISSIONS SECTION -->
+    <section class="card mission-card">
+      <div class="card-header">
+        <h3>Expedition Missions</h3>
+        <span id="mission-status-text" class="status-live">Idle</span>
+      </div>
+      
+      <div class="mission-list">
+        <div class="mission-row">
+          <div>
+            <strong>Meadow Forage</strong>
+            <p class="subtext">10s • Low Tier Gear</p>
+          </div>
+          <button class="btn mission-btn" data-time="10" data-tier="easy">Start (10s)</button>
+        </div>
+
+        <div class="mission-row">
+          <div>
+            <strong>Shadow Cave</strong>
+            <p class="subtext">30s • Mid Tier Gear</p>
+          </div>
+          <button class="btn mission-btn" data-time="30" data-tier="medium">Start (30s)</button>
+        </div>
+
+        <div class="mission-row risk-mission">
+          <div>
+            <strong>Abyssal Rift (RISK)</strong>
+            <p class="subtext">60s • High Tier Gear (5% Break Risk)</p>
+          </div>
+          <button class="btn danger-btn mission-btn" data-time="60" data-tier="hard">Start (60s)</button>
+        </div>
+      </div>
+
+      <div id="progress-container" class="meter-bg" style="display: none; margin-top: 12px;">
+        <div id="mission-progress-bar" class="meter-fill"></div>
+      </div>
+    </section>
+
+    <!-- INVENTORY & SELL SHOP -->
+    <section class="card inventory-card">
+      <div class="card-header">
+        <h3>Loot Bag</h3>
+        <span class="subtext">Equip for buffs or Sell for Coins</span>
+      </div>
+      <div id="inventory-grid" class="inventory-grid"></div>
+    </section>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
