@@ -1,1 +1,293 @@
 
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  user-select: none;
+}
+
+body {
+  background-color: #0f1218;
+  color: #f1f2f6;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.game-shell {
+  width: 100%;
+  max-width: 440px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.account-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #171c26;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  border: 1px solid #252e3f;
+}
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.stat-pill {
+  background: #1e2430;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border: 1px solid #2b3547;
+}
+
+.card {
+  background: #171c26;
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid #252e3f;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.subtext {
+  font-size: 0.75rem;
+  color: #8395a7;
+}
+
+.pet-card {
+  text-align: center;
+  position: relative;
+}
+
+.egg-display {
+  font-size: 72px;
+  margin: 10px 0;
+  cursor: pointer;
+}
+
+.pet-sprite {
+  font-size: 72px;
+  margin: 8px 0;
+  animation: bounce 1.5s infinite alternate;
+}
+
+@keyframes bounce {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-8px); }
+}
+
+.rarity-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 8px;
+  letter-spacing: 1px;
+}
+
+.pet-odds {
+  font-size: 0.85rem;
+  color: #a4b0be;
+  margin-bottom: 12px;
+}
+
+.btn {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primary-btn {
+  background: #10ac84;
+  color: white;
+  width: 100%;
+}
+
+.danger-btn {
+  background: #ee5253;
+  color: white;
+}
+
+.small-btn {
+  background: #2e384d;
+  color: white;
+  font-size: 0.8rem;
+}
+
+.gear-slot-row {
+  display: flex;
+  justify-content: center;
+}
+
+.gear-slot {
+  width: 100%;
+  background: #1f2736;
+  border: 2px dashed #3d4c67;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mission-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mission-row {
+  background: #1e2533;
+  padding: 10px 12px;
+  border-radius: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.risk-mission {
+  border: 1px solid #ee5253;
+}
+
+.meter-bg {
+  width: 100%;
+  height: 10px;
+  background: #222b3b;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.meter-fill {
+  height: 100%;
+  width: 0%;
+  background: #00d2d3;
+  transition: width 0.1s linear;
+}
+
+.inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.item-card {
+  background: #1e2533;
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.item-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.item-actions button {
+  flex: 1;
+  padding: 4px;
+  font-size: 0.75rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1000;
+}
+
+.modal-card {
+  background: #171c26;
+  border: 1px solid #252e3f;
+  width: 100%;
+  max-width: 340px;
+  border-radius: 16px;
+  padding: 20px;
+  position: relative;
+  text-align: center;
+  color: #f1f2f6;
+}
+
+.modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: #8395a7;
+  cursor: pointer;
+}
+
+.auth-tabs {
+  display: flex;
+  margin: 14px 0;
+  gap: 6px;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 8px;
+  background: #1e2533;
+  color: #8395a7;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+}
+
+.tab-btn.active {
+  background: #10ac84;
+  color: #fff;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  background: #0f1218;
+  color: #fff;
+  border: 1px solid #2b3547;
+}
+
+.text-btn {
+  background: none;
+  color: #8395a7;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.auth-msg {
+  font-size: 0.75rem;
+  color: #feca57;
+  margin-top: 8px;
+}
