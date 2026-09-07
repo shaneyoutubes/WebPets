@@ -2,125 +2,1653 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>RNG Pet Expeditions</title>
-  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>WebPets: RPG Expeditions Deluxe</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg-dark: #0a0d14;
+      --bg-card: #131924;
+      --panel-border: #1f2a3e;
+      --panel-border-bright: #2d3d5a;
+      --accent-neon: #00d2d3;
+      --accent-green: #10ac84;
+      --accent-gold: #feca57;
+      --accent-red: #ff6b6b;
+      --accent-purple: #a55eea;
+      --rarity-common: #a4b0be;
+      --rarity-uncommon: #1dd1a1;
+      --rarity-rare: #54a0ff;
+      --rarity-epic: #a55eea;
+      --rarity-legendary: #ff9f43;
+      --rarity-mythic: #ff5252;
+      --rarity-celestial: #00d2d3;
+      --rarity-cosmic: #f368e0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: #f1f2f6;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .game-shell {
+      width: 100%;
+      max-width: 480px;
+      min-height: 100vh;
+      padding: 12px 12px 30px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+    }
+
+    /* Screen Shake for Big Rolls */
+    .screen-shake {
+      animation: heavyShake 0.6s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+
+    @keyframes heavyShake {
+      10%, 90% { transform: translate3d(-3px, 0, 0); }
+      20%, 80% { transform: translate3d(5px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-7px, 0, 0); }
+      40%, 60% { transform: translate3d(7px, 0, 0); }
+    }
+
+    /* Panels & Cards */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--panel-border);
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .card-title {
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: #ced6e0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .subtext {
+      font-size: 0.72rem;
+      color: #747d8c;
+    }
+
+    /* Status Header */
+    .account-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0e141f;
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--panel-border);
+      font-size: 0.78rem;
+    }
+
+    .sync-pill {
+      background: #202b3d;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      color: #ced6e0;
+      border: 1px solid var(--panel-border);
+    }
+
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    .stat-box {
+      background: #0e141f;
+      border: 1px solid var(--panel-border);
+      padding: 6px 4px;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      color: #747d8c;
+      font-weight: 700;
+    }
+
+    .stat-val {
+      font-size: 0.9rem;
+      font-weight: 800;
+      margin-top: 2px;
+    }
+
+    .stat-coins { color: var(--accent-gold); }
+    .stat-luck { color: var(--accent-green); }
+    .stat-level { color: var(--accent-neon); }
+    .stat-xp { color: var(--accent-purple); }
+
+    /* Navigation Tabs */
+    .nav-tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    .nav-tab-btn {
+      background: #0e141f;
+      border: 1px solid var(--panel-border);
+      color: #747d8c;
+      padding: 8px 4px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .nav-tab-btn.active {
+      background: #202b3d;
+      color: var(--accent-neon);
+      border-color: var(--accent-neon);
+    }
+
+    .tab-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Pet Showcase & Egg */
+    .hatch-card {
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      min-height: 250px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      border: 1px solid var(--panel-border);
+    }
+
+    .canvas-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .egg-wrapper {
+      position: relative;
+      display: inline-block;
+      cursor: pointer;
+    }
+
+    .egg-visual {
+      width: 90px;
+      height: 90px;
+      border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+      background: linear-gradient(135deg, #ffd32a, #ff9f1a);
+      box-shadow: 0 0 25px rgba(255, 159, 26, 0.4), inset -4px -6px 12px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 45px;
+      margin: 10px auto;
+      transition: transform 0.15s ease;
+      border: 2px solid #ffeaa7;
+    }
+
+    .egg-shake {
+      animation: eggShake 0.75s infinite ease-in-out;
+    }
+
+    @keyframes eggShake {
+      0% { transform: rotate(0deg) scale(1); }
+      20% { transform: rotate(-12deg) scale(1.08); }
+      40% { transform: rotate(12deg) scale(1.08); }
+      60% { transform: rotate(-14deg) scale(1.12); }
+      80% { transform: rotate(14deg) scale(1.12); }
+      100% { transform: rotate(0deg) scale(1); }
+    }
+
+    .pet-portrait-frame {
+      width: 105px;
+      height: 105px;
+      border-radius: 50%;
+      margin: 6px auto 10px auto;
+      position: relative;
+      overflow: hidden;
+      background: #0a0d14;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px rgba(0,0,0,0.7);
+    }
+
+    .pet-portrait-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .pet-fallback-sprite {
+      font-size: 55px;
+      animation: petFloat 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes petFloat {
+      0% { transform: translateY(0px); }
+      100% { transform: translateY(-8px); }
+    }
+
+    .rarity-pill {
+      font-size: 0.68rem;
+      font-weight: 800;
+      padding: 3px 10px;
+      border-radius: 6px;
+      letter-spacing: 0.8px;
+      display: inline-block;
+      margin-bottom: 6px;
+      color: #fff;
+      text-transform: uppercase;
+    }
+
+    .pet-name-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      margin-bottom: 2px;
+    }
+
+    .gear-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #0e141f;
+      border: 1px dashed var(--panel-border-bright);
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+
+    .gear-thumb {
+      width: 44px;
+      height: 44px;
+      background: #171f2c;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      overflow: hidden;
+      border: 1px solid var(--panel-border);
+      flex-shrink: 0;
+    }
+
+    .gear-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Expeditions */
+    .mission-entry {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: #0e141f;
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 10px;
+      margin-bottom: 8px;
+    }
+
+    .mission-row-main {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .mission-thumb {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      overflow: hidden;
+      flex-shrink: 0;
+      border: 1px solid var(--panel-border);
+    }
+
+    .mission-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .progress-bar-wrap {
+      width: 100%;
+      height: 6px;
+      background: #11151c;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 2px;
+      display: none;
+    }
+
+    .progress-bar-fill {
+      width: 0%;
+      height: 100%;
+      background: var(--accent-neon);
+      transition: width 0.1s linear;
+    }
+
+    /* Inventory */
+    .inventory-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      max-height: 280px;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    .inv-card {
+      background: #0e141f;
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    /* Codex Collection Grid */
+    .codex-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      max-height: 320px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .codex-slot {
+      background: #0e141f;
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 6px 2px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .codex-slot.locked {
+      opacity: 0.35;
+      filter: grayscale(1);
+    }
+
+    .codex-thumb {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      overflow: hidden;
+      background: #171f2c;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      border: 1px solid var(--panel-border);
+    }
+
+    .codex-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .codex-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 70px;
+    }
+
+    /* Public Chat Room */
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: 360px;
+      background: #0e141f;
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 10px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .chat-msg {
+      background: #141c2b;
+      border: 1px solid #1c273c;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      word-break: break-word;
+    }
+
+    .chat-msg-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 2px;
+      font-size: 0.65rem;
+      color: #747d8c;
+    }
+
+    .chat-author {
+      font-weight: 700;
+      color: var(--accent-neon);
+    }
+
+    .chat-msg-text {
+      color: #f1f2f6;
+    }
+
+    .chat-input-row {
+      display: flex;
+      gap: 6px;
+      padding: 8px;
+      background: #141c2b;
+      border-top: 1px solid var(--panel-border);
+    }
+
+    .chat-input {
+      flex: 1;
+      background: #0a0d14;
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      padding: 6px 10px;
+      color: #fff;
+      font-size: 0.78rem;
+    }
+
+    /* Buttons */
+    .btn {
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-weight: 700;
+      font-size: 0.78rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: opacity 0.15s ease;
+    }
+
+    .btn:active {
+      opacity: 0.8;
+      transform: scale(0.98);
+    }
+
+    .btn-action { background: #202b3d; color: #ced6e0; border: 1px solid var(--panel-border); }
+    .btn-green { background: var(--accent-green); color: #fff; }
+    .btn-gold { background: var(--accent-gold); color: #1e272e; }
+    .btn-danger { background: var(--accent-red); color: #fff; }
+    .btn-purple { background: var(--accent-purple); color: #fff; }
+    .btn-small { padding: 4px 8px; font-size: 0.72rem; border-radius: 6px; }
+    .btn-full { width: 100%; padding: 10px; }
+
+    /* Modals */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(5px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-box {
+      background: var(--bg-card);
+      border: 1px solid var(--panel-border-bright);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 400px;
+      padding: 18px;
+      position: relative;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      background: none;
+      border: none;
+      color: #747d8c;
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+
+    .video-viewport {
+      width: 100%;
+      height: 190px;
+      background: #000;
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+      margin: 12px 0;
+      border: 1px solid var(--panel-border);
+    }
+
+    .video-viewport video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .input-text {
+      width: 100%;
+      background: #0a0d14;
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 10px;
+      color: #fff;
+      font-size: 0.82rem;
+      margin-bottom: 8px;
+    }
+
+    .auth-tabs {
+      display: flex;
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .auth-tab {
+      flex: 1;
+      padding: 6px;
+      text-align: center;
+      background: #0e141f;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #747d8c;
+      cursor: pointer;
+    }
+
+    .auth-tab.active {
+      background: #202b3d;
+      color: #fff;
+    }
+  </style>
 </head>
 <body>
-  <!-- AUTH MODAL -->
-  <div id="auth-modal" class="modal-overlay" style="display: none;">
-    <div class="modal-card">
-      <button class="modal-close" id="close-modal-btn">✕</button>
-      <h2>Save Your Progress</h2>
-      <p class="subtext">Log in or register to sync your pet across devices.</p>
 
-      <div class="auth-tabs">
-        <button id="tab-login" class="tab-btn active">Log In</button>
-        <button id="tab-signup" class="tab-btn">Sign Up</button>
-      </div>
+<div class="game-shell" id="game-shell">
+  <!-- Auth Header -->
+  <div class="account-row">
+    <div id="account-label">Local Save (Guest)</div>
+    <button class="sync-pill" onclick="openAuthModal()">Cloud Sync</button>
+  </div>
 
-      <input type="email" id="auth-email" placeholder="Enter your email" />
-      <input type="password" id="auth-password" placeholder="Enter your password" />
-
-      <button id="auth-submit-btn" class="btn primary-btn">Log In</button>
-      <button id="guest-dismiss-btn" class="btn text-btn">Continue as Guest</button>
-      <p id="auth-msg" class="auth-msg"></p>
+  <!-- Four-Pill Stat Bar -->
+  <div class="stats-bar">
+    <div class="stat-box">
+      <div class="stat-label">Coins</div>
+      <div class="stat-val stat-coins" id="coin-disp">150</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Luck</div>
+      <div class="stat-val stat-luck" id="luck-disp">1.00x</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Level</div>
+      <div class="stat-val stat-level" id="level-disp">1</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Exp</div>
+      <div class="stat-val stat-xp" id="xp-disp">0/100</div>
     </div>
   </div>
 
-  <div class="game-shell">
-    <!-- ACCOUNT HEADER -->
-    <div class="account-header">
-      <div id="account-status">Playing as <strong>Guest</strong> (Local Only)</div>
-      <button id="open-auth-btn" class="btn small-btn">Log In / Sync</button>
-    </div>
+  <!-- Main Navigation Tabs -->
+  <div class="nav-tabs">
+    <div class="nav-tab-btn active" id="tabbtn-camp" onclick="switchNavTab('camp')">Camp</div>
+    <div class="nav-tab-btn" id="tabbtn-quests" onclick="switchNavTab('quests')">Expeditions</div>
+    <div class="nav-tab-btn" id="tabbtn-codex" onclick="switchNavTab('codex')">Codex</div>
+    <div class="nav-tab-btn" id="tabbtn-chat" onclick="switchNavTab('chat')">Live Chat</div>
+  </div>
 
-    <!-- TOP STATS BAR -->
-    <header class="top-bar">
-      <div class="stat-pill">💰 <span id="coin-display">100</span> Coins</div>
-      <div class="stat-pill">🍀 <span id="luck-display">1.0x</span> Luck</div>
-      <div class="stat-pill">⭐ Lvl <span id="player-lvl">1</span></div>
-    </header>
-
-    <!-- PET HATCH / ACTIVE PET SECTION -->
-    <section class="card pet-card">
-      <div id="hatch-screen">
-        <div class="egg-display" id="egg-btn">🥚</div>
-        <p class="hint-text">Tap the Egg to Hatch Your Pet</p>
-        <button id="roll-btn" class="btn primary-btn">Hatch Egg (Free)</button>
-      </div>
-
-      <div id="active-pet-screen" style="display: none;">
-        <div class="rarity-badge" id="pet-rarity">COMMON</div>
-        <div class="pet-sprite" id="pet-sprite">🐕</div>
-        <h2 id="pet-name">Puppy</h2>
-        <p class="pet-odds" id="pet-odds">1 in 2 (50%)</p>
-        <button id="re-roll-btn" class="btn small-btn">Reroll Egg (100 Coins)</button>
-      </div>
-    </section>
-
-    <!-- EQUIPPED GEAR SECTION -->
-    <section class="card gear-card">
-      <div class="card-header">
-        <h3>Equipped Gear</h3>
-        <span class="subtext">Boosts Drop Rate & XP</span>
-      </div>
-      <div class="gear-slot-row">
-        <div class="gear-slot" id="gear-slot-display">
-          <span class="slot-placeholder">Empty Gear Slot</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- EXPEDITION / MISSIONS SECTION -->
-    <section class="card mission-card">
-      <div class="card-header">
-        <h3>Expedition Missions</h3>
-        <span id="mission-status-text" class="status-live">Idle</span>
-      </div>
+  <!-- TAB 1: CAMP (HATCH & GEAR) -->
+  <div class="tab-section" id="section-camp">
+    <!-- Pet / Egg Section -->
+    <div class="card hatch-card" id="hatch-stage">
+      <canvas id="fx-canvas" class="canvas-overlay"></canvas>
       
-      <div class="mission-list">
-        <div class="mission-row">
-          <div>
-            <strong>Meadow Forage</strong>
-            <p class="subtext">10s • Low Tier Gear</p>
-          </div>
-          <button class="btn mission-btn" data-time="10" data-tier="easy">Start (10s)</button>
+      <div id="egg-view" style="display: block;">
+        <div class="egg-wrapper" onclick="triggerHatchSequence()">
+          <div class="egg-visual" id="egg-actor">✨</div>
         </div>
-
-        <div class="mission-row">
-          <div>
-            <strong>Shadow Cave</strong>
-            <p class="subtext">30s • Mid Tier Gear</p>
-          </div>
-          <button class="btn mission-btn" data-time="30" data-tier="medium">Start (30s)</button>
+        <div>
+          <h3 style="font-size: 1rem; margin-bottom: 2px;">Primeval Egg</h3>
+          <p class="subtext">Tap to trigger resonance hatch</p>
         </div>
-
-        <div class="mission-row risk-mission">
-          <div>
-            <strong>Abyssal Rift (RISK)</strong>
-            <p class="subtext">60s • High Tier Gear (5% Break Risk)</p>
-          </div>
-          <button class="btn danger-btn mission-btn" data-time="60" data-tier="hard">Start (60s)</button>
-        </div>
+        <button class="btn btn-green" style="margin-top: 10px; width: 140px;" onclick="triggerHatchSequence()">Hatch (Free)</button>
       </div>
 
-      <div id="progress-container" class="meter-bg" style="display: none; margin-top: 12px;">
-        <div id="mission-progress-bar" class="meter-fill"></div>
+      <div id="pet-view" style="display: none; width: 100%;">
+        <span class="rarity-pill" id="pet-rarity-badge">COMMON</span>
+        <div class="pet-portrait-frame" id="pet-portrait-container"></div>
+        <h2 class="pet-name-title" id="pet-title-disp">Slime</h2>
+        <p class="subtext" id="pet-odds-disp" style="margin-bottom: 10px;">Drop Odds: 1 in 2</p>
+        <button class="btn btn-gold btn-small" onclick="rerollPet()">Reroll Egg (100 Coins)</button>
       </div>
-    </section>
+    </div>
 
-    <!-- INVENTORY & SELL SHOP -->
-    <section class="card inventory-card">
+    <!-- Equipped Gear Slot -->
+    <div class="card">
       <div class="card-header">
-        <h3>Loot Bag</h3>
-        <span class="subtext">Equip for buffs or Sell for Coins</span>
+        <span class="card-title">🛡️ Equipped Artifact</span>
+        <span class="subtext" id="gear-effect-summary">No buffs</span>
       </div>
-      <div id="inventory-grid" class="inventory-grid"></div>
-    </section>
+      <div class="gear-container">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="gear-thumb" id="equipped-asset-slot">∅</div>
+          <div>
+            <div style="font-weight: 700; font-size: 0.85rem;" id="equipped-name">No Gear Equipped</div>
+            <div class="subtext" id="equipped-stat">+0.00x Luck Multiplier</div>
+          </div>
+        </div>
+        <button class="btn btn-action btn-small" id="unequip-btn" style="display: none;" onclick="unequipCurrentGear()">Unequip</button>
+      </div>
+    </div>
+
+    <!-- Inventory -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🎒 Loot Bag</span>
+        <span class="subtext" id="bag-count">0 items</span>
+      </div>
+      <div class="inventory-grid" id="inv-container"></div>
+    </div>
   </div>
 
-  <script src="script.js"></script>
+  <!-- TAB 2: EXPEDITIONS -->
+  <div class="tab-section" id="section-quests" style="display: none;">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🗺️ Available Expeditions</span>
+        <span class="subtext">Auto-runs in background</span>
+      </div>
+      <div id="missions-list"></div>
+    </div>
+  </div>
+
+  <!-- TAB 3: CODEX (COLLECTION) -->
+  <div class="tab-section" id="section-codex" style="display: none;">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📖 Pet & Relic Codex</span>
+        <span class="subtext" id="codex-counter">0 / 8 Discovered</span>
+      </div>
+      <div class="codex-grid" id="codex-grid"></div>
+    </div>
+  </div>
+
+  <!-- TAB 4: LIVE CHAT ROOM -->
+  <div class="tab-section" id="section-chat" style="display: none;">
+    <div class="card" style="padding: 10px;">
+      <div class="card-header">
+        <span class="card-title">💬 Global World Chat</span>
+        <span class="subtext">Realtime cross-player feed</span>
+      </div>
+      <div class="chat-container">
+        <div class="chat-messages" id="chat-scroller"></div>
+        <div class="chat-input-row">
+          <input type="text" id="chat-input" class="chat-input" placeholder="Type message..." maxlength="120" onkeypress="handleChatEnter(event)">
+          <button class="btn btn-green btn-small" onclick="sendPublicChatMessage()">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Mission Video Modal -->
+<div class="modal-overlay" id="mission-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('mission-modal')">✕</button>
+    <h3 style="font-size: 1rem;" id="modal-mission-title">Mission Briefing</h3>
+    <p class="subtext" id="modal-mission-desc">Scanning mission coordinates...</p>
+    
+    <div class="video-viewport">
+      <video id="mission-video" autoplay loop muted playsinline>
+        <source id="mission-video-src" src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4">
+      </video>
+    </div>
+
+    <button class="btn btn-green btn-full" id="modal-mission-action" onclick="startInspectedMission()">Deploy Expedition</button>
+  </div>
+</div>
+
+<!-- Auth Modal -->
+<div class="modal-overlay" id="auth-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('auth-modal')">✕</button>
+    <h3>Account & Cloud Save</h3>
+    <p class="subtext">Persist and sync your saves across multiple devices.</p>
+
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tab-login" onclick="switchAuthTab(false)">Sign In</div>
+      <div class="auth-tab" id="tab-register" onclick="switchAuthTab(true)">Register</div>
+    </div>
+
+    <input type="email" id="auth-email" class="input-text" placeholder="name@domain.com">
+    <input type="password" id="auth-password" class="input-text" placeholder="Secret password">
+
+    <button class="btn btn-green btn-full" id="auth-submit-btn" onclick="executeAuth()">Sign In</button>
+    <button class="btn btn-action btn-full" style="margin-top: 8px;" id="auth-signout-btn" onclick="executeSignOut()">Sign Out</button>
+    <p class="subtext" id="auth-feedback" style="margin-top: 8px; text-align: center; color: var(--accent-gold);"></p>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   1. EXPANDED DATABASE: PETS, RELICS & EXPEDITION TABLES (PUBLIC ASSETS)
+   ========================================================================= */
+
+// Unsplash high-performance optimized royalty-free images with emoji fallback
+const PET_DATABASE = [
+  {
+    id: "slime",
+    name: "Viridian Slime",
+    rarity: "COMMON",
+    odds: 4500,
+    icon: "🟢",
+    image: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=200&auto=format&fit=crop&q=80",
+    color: "var(--rarity-common)"
+  },
+  {
+    id: "hound",
+    name: "Cinder Fox",
+    rarity: "UNCOMMON",
+    odds: 2400,
+    icon: "🦊",
+    image: "https://images.unsplash.com/photo-1516934024742-b461fba47600?w=200&auto=format&fit=crop&q=80",
+    color: "var(--rarity-uncommon)"
+  },
+  {
+    id: "falcon",
+    name: "Storm Falcon",
+    rarity: "RARE",
+    odds: 1100,
+    icon: "🦅",
+    image: "https://images.unsplash.com/photo-1611689342806-0863700ce1e4?w=200&auto=format&fit=crop&q=80",
+    color: "var(--rarity-rare)"
+  },
+  {
+    id: "panther",
+    name: "Night Panther",
+    rarity: "EPIC",
+    odds: 450,
+    icon: "🐆",
+    image: "https://images.unsplash.com/photo-1534188753412-3e26d0d618d6?w=200&auto=format&fit=crop&q=80",
+    color: "var(--rarity-epic)"
+  },
+  {
+    id: "drake",
+    name: "Solar Drake",
+    rarity: "LEGENDARY",
+    odds: 80,
+    icon: "🐉",
+    image: "https://images.unsplash.com/photo-1577493340887-b7bfff550145?w=200&auto=format&fit=crop&q=80",
+    color: "var(--rarity-legendary)"
+  },
+  {
+    id: "leviathan",
+    name: "Abyssal Kraken",
+    rarity: "MYTHIC",
+    odds: 12,
+    icon: "🐙",
+    image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=200&auto=format&fit=crop&q=80",
+    color: "var(--rarity-mythic)"
+  },
+  {
+    id: "celestial_owl",
+    name: "Astral Owl",
+    rarity: "CELESTIAL",
+    odds: 3,
+    icon: "🦉",
+    image: "https://images.unsplash.com/photo-1543549790-8b5f4a028cfb?w=200&auto=format&fit=crop&q=80",
+    color: "var(--rarity-celestial)"
+  },
+  {
+    id: "void_beast",
+    name: "Cosmic Entity",
+    rarity: "COSMIC",
+    odds: 1,
+    icon: "👾",
+    image: "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=200&auto=format&fit=crop&q=80",
+    color: "var(--rarity-cosmic)"
+  }
+];
+
+const ITEM_DATABASE = {
+  meadow: [
+    { name: "Forest Token", icon: "🪵", luckBoost: 0.15, sellPrice: 25, image: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=150&auto=format&fit=crop&q=80" },
+    { name: "Copper Charm", icon: "🥉", luckBoost: 0.25, sellPrice: 40, image: "https://images.unsplash.com/photo-1610375461246-83df859d849d?w=150&auto=format&fit=crop&q=80" }
+  ],
+  cavern: [
+    { name: "Quartz Shard", icon: "🔮", luckBoost: 0.65, sellPrice: 110, image: "https://images.unsplash.com/photo-1551739440-5dd934d3a94a?w=150&auto=format&fit=crop&q=80" },
+    { name: "Lucky Clover", icon: "🍀", luckBoost: 0.90, sellPrice: 180, image: "https://images.unsplash.com/photo-1522069169874-c58ec4b76be5?w=150&auto=format&fit=crop&q=80" }
+  ],
+  ruins: [
+    { name: "Ancient Relic", icon: "🏺", luckBoost: 1.5, sellPrice: 380, image: "https://images.unsplash.com/photo-1608889825205-eebdb9fc5806?w=150&auto=format&fit=crop&q=80" },
+    { name: "Rune Signet", icon: "💍", luckBoost: 2.2, sellPrice: 650, image: "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=150&auto=format&fit=crop&q=80" }
+  ],
+  rift: [
+    { name: "Void Diadem", icon: "👑", luckBoost: 4.0, sellPrice: 1600, image: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=150&auto=format&fit=crop&q=80" },
+    { name: "Star Core", icon: "⭐", luckBoost: 7.5, sellPrice: 3500, image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=150&auto=format&fit=crop&q=80" }
+  ]
+};
+
+const EXPEDITION_DATABASE = [
+  {
+    id: "meadow",
+    title: "Verdant Glen",
+    desc: "Placid forest meadows brimming with botanical relics.",
+    duration: 10,
+    risk: false,
+    xpReward: 20,
+    coinReward: 25,
+    thumb: "https://images.unsplash.com/photo-1448375240586-882707db888b?w=150&auto=format&fit=crop&q=80",
+    video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
+  },
+  {
+    id: "cavern",
+    title: "Echoing Caves",
+    desc: "Crystalline caverns with dense subterranean aura.",
+    duration: 25,
+    risk: false,
+    xpReward: 55,
+    coinReward: 70,
+    thumb: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=150&auto=format&fit=crop&q=80",
+    video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4"
+  },
+  {
+    id: "ruins",
+    title: "Sunken Citadel",
+    desc: "Drowned stone sanctums housing ancient empire treasures.",
+    duration: 45,
+    risk: false,
+    xpReward: 120,
+    coinReward: 160,
+    thumb: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=150&auto=format&fit=crop&q=80",
+    video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4"
+  },
+  {
+    id: "rift",
+    title: "Abyssal Gate",
+    desc: "Turbulent tear in reality. 5% artifact breakdown risk.",
+    duration: 70,
+    risk: true,
+    xpReward: 300,
+    coinReward: 420,
+    thumb: "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=150&auto=format&fit=crop&q=80",
+    video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4"
+  }
+];
+
+/* =========================================================================
+   2. SUPABASE BACKEND & REALTIME SETUP
+   ========================================================================= */
+
+const SUPABASE_URL = "https://utmzjbdubwwiwqizxtsb.supabase.co";
+const SUPABASE_KEY = "sb_publishable_Jg9XTAkUQM8Hpc6iUbWVJw__kYPaBgY";
+let supabase = null;
+
+if (window.supabase && typeof window.supabase.createClient === "function") {
+  try {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  } catch(e) {
+    console.warn("Supabase init skipped:", e);
+  }
+}
+
+let activeUser = null;
+let isSignUp = false;
+let currentInspectedExpedition = null;
+let isHatching = false;
+
+let gameState = {
+  coins: 150,
+  level: 1,
+  xp: 0,
+  activePet: null,
+  equippedGear: null,
+  inventory: [],
+  discoveredPetIds: [],
+  activeExpedition: null
+};
+
+// Simulated Local Live Chat Feed Fallback
+let liveChatMessages = [
+  { id: 1, sender: "ShadowWalker", text: "Just hatched a Void Leviathan! Odds are insane.", time: "12:02" },
+  { id: 2, sender: "LunaFox", text: "Make sure you equip luck charms before running the Citadel.", time: "12:05" },
+  { id: 3, sender: "Keth", text: "Abyssal Gate broke my Star Core... be careful!", time: "12:09" }
+];
+
+/* =========================================================================
+   3. SAVE ENGINE & PERSISTENCE
+   ========================================================================= */
+
+function loadLocalSave() {
+  try {
+    const raw = localStorage.getItem("rng_pets_deluxe_save");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      gameState = Object.assign(gameState, parsed);
+    }
+  } catch(e) {}
+}
+
+function commitSave() {
+  try {
+    localStorage.setItem("rng_pets_deluxe_save", JSON.stringify(gameState));
+  } catch(e) {}
+
+  if (activeUser && supabase) {
+    supabase.from("player_saves").upsert({
+      user_id: activeUser.id,
+      save_data: gameState,
+      updated_at: new Date().toISOString()
+    }).catch(() => {});
+  }
+  renderAll();
+}
+
+/* =========================================================================
+   4. NAVIGATION & VISUAL FX
+   ========================================================================= */
+
+function switchNavTab(tabName) {
+  ["camp", "quests", "codex", "chat"].forEach(t => {
+    document.getElementById(`section-${t}`).style.display = t === tabName ? "flex" : "none";
+    document.getElementById(`tabbtn-${t}`).classList.toggle("active", t === tabName);
+  });
+  if (tabName === "codex") renderCodex();
+  if (tabName === "chat") scrollChatToBottom();
+}
+
+const canvas = document.getElementById("fx-canvas");
+const ctx = canvas.getContext("2d");
+let particles = [];
+let animFrameId = null;
+
+function resizeCanvas() {
+  if (!canvas.parentElement) return;
+  canvas.width = canvas.parentElement.clientWidth;
+  canvas.height = canvas.parentElement.clientHeight;
+}
+
+function spawnBurstFX(colorHex) {
+  resizeCanvas();
+  particles = [];
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+
+  for (let i = 0; i < 70; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = Math.random() * 8 + 2;
+    particles.push({
+      x: cx,
+      y: cy,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      radius: Math.random() * 3.5 + 1.5,
+      color: colorHex,
+      alpha: 1,
+      decay: Math.random() * 0.025 + 0.015
+    });
+  }
+  animateFX();
+}
+
+function animateFX() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  particles.forEach(p => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.alpha -= p.decay;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, p.alpha);
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  });
+
+  particles = particles.filter(p => p.alpha > 0);
+  if (particles.length > 0) {
+    animFrameId = requestAnimationFrame(animateFX);
+  } else {
+    cancelAnimationFrame(animFrameId);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+}
+
+/* =========================================================================
+   5. PROGRESSION, ROLLS & HATCHING
+   ========================================================================= */
+
+function getComputedLuck() {
+  let base = 1.0;
+  if (gameState.equippedGear && gameState.equippedGear.luckBoost) {
+    base += gameState.equippedGear.luckBoost;
+  }
+  return parseFloat(base.toFixed(2));
+}
+
+function addXP(amount) {
+  gameState.xp += amount;
+  const required = gameState.level * 100;
+  if (gameState.xp >= required) {
+    gameState.xp -= required;
+    gameState.level += 1;
+    gameState.coins += gameState.level * 50;
+    alert(`🎉 Level Up! You reached Level ${gameState.level} and gained bonus coins!`);
+  }
+}
+
+function pickRandomPet() {
+  const luck = getComputedLuck();
+  let weightSum = 0;
+
+  const dynamicTable = PET_DATABASE.map(p => {
+    let weight = p.odds;
+    if (p.rarity !== "COMMON") {
+      weight = Math.round(weight * luck);
+    }
+    weightSum += weight;
+    return { ...p, ceiling: weightSum };
+  });
+
+  const roll = Math.random() * weightSum;
+  return dynamicTable.find(entry => roll <= entry.ceiling) || PET_DATABASE[0];
+}
+
+function triggerHatchSequence() {
+  if (isHatching) return;
+  isHatching = true;
+
+  const egg = document.getElementById("egg-actor");
+  egg.classList.add("egg-shake");
+
+  setTimeout(() => {
+    const pet = pickRandomPet();
+    gameState.activePet = pet;
+
+    if (!gameState.discoveredPetIds.includes(pet.id)) {
+      gameState.discoveredPetIds.push(pet.id);
+      addXP(40);
+      postSystemChatMessage(`🌟 Rare discovery! A player just unlocked [${pet.name}] (${pet.rarity})!`);
+    }
+
+    const isLegendaryPlus = ["LEGENDARY", "MYTHIC", "CELESTIAL", "COSMIC"].includes(pet.rarity);
+    spawnBurstFX(isLegendaryPlus ? "#ff5252" : "#00d2d3");
+
+    if (isLegendaryPlus) {
+      const shell = document.getElementById("game-shell");
+      shell.classList.remove("screen-shake");
+      void shell.offsetWidth;
+      shell.classList.add("screen-shake");
+    }
+
+    egg.classList.remove("egg-shake");
+    isHatching = false;
+    commitSave();
+  }, 1100);
+}
+
+function rerollPet() {
+  if (gameState.coins >= 100) {
+    gameState.coins -= 100;
+    triggerHatchSequence();
+  } else {
+    alert("You need 100 coins to reroll this egg!");
+  }
+}
+
+/* =========================================================================
+   6. EXPEDITIONS CONTROLLER
+   ========================================================================= */
+
+function buildExpeditionsList() {
+  const list = document.getElementById("missions-list");
+  list.innerHTML = "";
+
+  EXPEDITION_DATABASE.forEach(exp => {
+    const entry = document.createElement("div");
+    entry.className = "mission-entry";
+    entry.id = `exp-row-${exp.id}`;
+
+    entry.innerHTML = `
+      <div class="mission-row-main">
+        <div class="mission-thumb">
+          <img src="${exp.thumb}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1448375240586-882707db888b?w=150';" />
+        </div>
+        <div style="flex: 1;">
+          <div style="font-weight: 700; font-size: 0.85rem; color: ${exp.risk ? 'var(--accent-red)' : '#fff'}">${exp.title}</div>
+          <div class="subtext">${exp.duration}s • +${exp.xpReward} XP • +${exp.coinReward} 💰</div>
+        </div>
+        <div style="display: flex; gap: 4px;">
+          <button class="btn btn-action btn-small" onclick="inspectExpedition('${exp.id}')">View</button>
+          <button class="btn btn-green btn-small" id="btn-launch-${exp.id}" onclick="launchExpedition('${exp.id}')">Launch</button>
+        </div>
+      </div>
+      <div class="progress-bar-wrap" id="bar-wrap-${exp.id}">
+        <div class="progress-bar-fill" id="bar-fill-${exp.id}"></div>
+      </div>
+    `;
+    list.appendChild(entry);
+  });
+}
+
+function inspectExpedition(id) {
+  const exp = EXPEDITION_DATABASE.find(e => e.id === id);
+  if (!exp) return;
+  currentInspectedExpedition = exp;
+
+  document.getElementById("modal-mission-title").innerText = exp.title;
+  document.getElementById("modal-mission-desc").innerText = exp.desc;
+  
+  const video = document.getElementById("mission-video");
+  const videoSrc = document.getElementById("mission-video-src");
+  videoSrc.src = exp.video;
+  video.load();
+  video.play().catch(() => {});
+
+  document.getElementById("mission-modal").style.display = "flex";
+}
+
+function startInspectedMission() {
+  closeModal("mission-modal");
+  if (currentInspectedExpedition) {
+    launchExpedition(currentInspectedExpedition.id);
+  }
+}
+
+function launchExpedition(id) {
+  if (gameState.activeExpedition) {
+    alert("Your pet is currently deployed on another expedition!");
+    return;
+  }
+  if (!gameState.activePet) {
+    alert("Hatch a pet companion before heading on an expedition!");
+    return;
+  }
+
+  const exp = EXPEDITION_DATABASE.find(e => e.id === id);
+  const barWrap = document.getElementById(`bar-wrap-${id}`);
+  const barFill = document.getElementById(`bar-fill-${id}`);
+  const btn = document.getElementById(`btn-launch-${id}`);
+
+  if (barWrap) barWrap.style.display = "block";
+  if (btn) {
+    btn.disabled = true;
+    btn.innerText = "Exploring...";
+  }
+
+  gameState.activeExpedition = {
+    id: id,
+    secondsLeft: exp.duration,
+    duration: exp.duration
+  };
+
+  const ticker = setInterval(() => {
+    gameState.activeExpedition.secondsLeft -= 0.2;
+    const pct = Math.max(0, Math.min(100, ((exp.duration - gameState.activeExpedition.secondsLeft) / exp.duration) * 100));
+    if (barFill) barFill.style.width = pct + "%";
+
+    if (gameState.activeExpedition.secondsLeft <= 0) {
+      clearInterval(ticker);
+      completeExpedition(exp);
+    }
+  }, 200);
+}
+
+function completeExpedition(exp) {
+  const barWrap = document.getElementById(`bar-wrap-${exp.id}`);
+  const barFill = document.getElementById(`bar-fill-${exp.id}`);
+  const btn = document.getElementById(`btn-launch-${exp.id}`);
+
+  if (barWrap) barWrap.style.display = "none";
+  if (barFill) barFill.style.width = "0%";
+  if (btn) {
+    btn.disabled = false;
+    btn.innerText = "Launch";
+  }
+
+  // Risky breakdown roll
+  if (exp.risk && gameState.equippedGear && Math.random() < 0.05) {
+    alert(`⚠️ Critical Fracture! The hazardous realm shattered your equipped [${gameState.equippedGear.name}]!`);
+    gameState.equippedGear = null;
+  }
+
+  // Pick relic reward
+  const pool = ITEM_DATABASE[exp.id] || ITEM_DATABASE.meadow;
+  const pickedItem = { ...pool[Math.floor(Math.random() * pool.length)], instanceId: Date.now() + Math.random() };
+  gameState.inventory.push(pickedItem);
+
+  gameState.coins += exp.coinReward;
+  addXP(exp.xpReward);
+  gameState.activeExpedition = null;
+
+  commitSave();
+}
+
+/* =========================================================================
+   7. INVENTORY & GEAR ENGINE
+   ========================================================================= */
+
+function equipGear(instanceId) {
+  const idx = gameState.inventory.findIndex(i => i.instanceId === instanceId);
+  if (idx > -1) {
+    const item = gameState.inventory[idx];
+    if (gameState.equippedGear) {
+      gameState.inventory.push(gameState.equippedGear);
+    }
+    gameState.equippedGear = item;
+    gameState.inventory.splice(idx, 1);
+    commitSave();
+  }
+}
+
+function unequipCurrentGear() {
+  if (gameState.equippedGear) {
+    gameState.inventory.push(gameState.equippedGear);
+    gameState.equippedGear = null;
+    commitSave();
+  }
+}
+
+function sellInventoryItem(instanceId) {
+  const idx = gameState.inventory.findIndex(i => i.instanceId === instanceId);
+  if (idx > -1) {
+    gameState.coins += gameState.inventory[idx].sellPrice;
+    gameState.inventory.splice(idx, 1);
+    commitSave();
+  }
+}
+
+/* =========================================================================
+   8. REALTIME / PUBLIC CHAT ENGINE
+   ========================================================================= */
+
+function setupPublicChat() {
+  if (!supabase) {
+    renderLocalChat();
+    return;
+  }
+
+  // Fetch initial messages from public_chat table if available
+  supabase.from("public_chat")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(25)
+    .then(({ data, error }) => {
+      if (!error && data && data.length > 0) {
+        liveChatMessages = data.reverse().map(m => ({
+          id: m.id,
+          sender: m.username || "Adventurer",
+          text: m.message,
+          time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }));
+      }
+      renderLocalChat();
+    });
+
+  // Subscribe to public chat channel
+  supabase.channel("public-world-chat")
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "public_chat" }, payload => {
+      const row = payload.new;
+      liveChatMessages.push({
+        id: row.id,
+        sender: row.username || "Adventurer",
+        text: row.message,
+        time: new Date(row.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      });
+      renderLocalChat();
+    })
+    .subscribe();
+}
+
+function renderLocalChat() {
+  const box = document.getElementById("chat-scroller");
+  box.innerHTML = "";
+  liveChatMessages.forEach(msg => {
+    const div = document.createElement("div");
+    div.className = "chat-msg";
+    div.innerHTML = `
+      <div class="chat-msg-header">
+        <span class="chat-author">${escapeHTML(msg.sender)}</span>
+        <span>${msg.time}</span>
+      </div>
+      <div class="chat-msg-text">${escapeHTML(msg.text)}</div>
+    `;
+    box.appendChild(div);
+  });
+  scrollChatToBottom();
+}
+
+function scrollChatToBottom() {
+  const box = document.getElementById("chat-scroller");
+  setTimeout(() => { box.scrollTop = box.scrollHeight; }, 50);
+}
+
+function handleChatEnter(e) {
+  if (e.key === "Enter") sendPublicChatMessage();
+}
+
+function sendPublicChatMessage() {
+  const input = document.getElementById("chat-input");
+  const text = input.value.trim();
+  if (!text) return;
+
+  const senderName = activeUser ? activeUser.email.split("@")[0] : `Guest_${Math.floor(1000 + Math.random() * 9000)}`;
+  const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  // Broadcast to supabase if online
+  if (supabase) {
+    supabase.from("public_chat").insert({
+      username: senderName,
+      message: text
+    }).catch(() => {});
+  }
+
+  // Local fallback append
+  liveChatMessages.push({
+    id: Date.now(),
+    sender: senderName,
+    text: text,
+    time: nowTime
+  });
+
+  input.value = "";
+  renderLocalChat();
+}
+
+function postSystemChatMessage(str) {
+  liveChatMessages.push({
+    id: Date.now(),
+    sender: "SYSTEM",
+    text: str,
+    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  });
+  renderLocalChat();
+}
+
+function escapeHTML(str) {
+  return String(str).replace(/[&<>'"]/g, tag => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    "'": '&#39;',
+    '"': '&quot;'
+  }[tag] || tag));
+}
+
+/* =========================================================================
+   9. CODEX & UI RENDERING
+   ========================================================================= */
+
+function renderCodex() {
+  const grid = document.getElementById("codex-grid");
+  const counter = document.getElementById("codex-counter");
+  grid.innerHTML = "";
+
+  let unlockedCount = 0;
+
+  PET_DATABASE.forEach(pet => {
+    const isUnlocked = gameState.discoveredPetIds.includes(pet.id);
+    if (isUnlocked) unlockedCount++;
+
+    const slot = document.createElement("div");
+    slot.className = `codex-slot ${isUnlocked ? '' : 'locked'}`;
+
+    slot.innerHTML = `
+      <div class="codex-thumb">
+        <img src="${pet.image}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=100';" />
+      </div>
+      <div class="codex-label">${isUnlocked ? pet.name : '???'}</div>
+      <div style="font-size: 0.58rem; color:${pet.color};">${pet.rarity}</div>
+    `;
+    grid.appendChild(slot);
+  });
+
+  counter.innerText = `${unlockedCount} / ${PET_DATABASE.length} Discovered`;
+}
+
+function renderAll() {
+  // Top stats
+  document.getElementById("coin-disp").innerText = gameState.coins;
+  document.getElementById("luck-disp").innerText = getComputedLuck().toFixed(2) + "x";
+  document.getElementById("level-disp").innerText = gameState.level;
+  document.getElementById("xp-disp").innerText = `${gameState.xp}/${gameState.level * 100}`;
+
+  // Active Pet
+  const eggView = document.getElementById("egg-view");
+  const petView = document.getElementById("pet-view");
+
+  if (gameState.activePet) {
+    eggView.style.display = "none";
+    petView.style.display = "block";
+
+    const badge = document.getElementById("pet-rarity-badge");
+    badge.innerText = gameState.activePet.rarity;
+    badge.style.background = gameState.activePet.color;
+
+    document.getElementById("pet-title-disp").innerText = gameState.activePet.name;
+    document.getElementById("pet-odds-disp").innerText = `Weight: 1 in ${Math.round(4500 / gameState.activePet.odds)}`;
+
+    const container = document.getElementById("pet-portrait-container");
+    container.innerHTML = `
+      <img src="${gameState.activePet.image}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+      <span class="pet-fallback-sprite" style="display: none;">${gameState.activePet.icon}</span>
+    `;
+  } else {
+    eggView.style.display = "block";
+    petView.style.display = "none";
+  }
+
+  // Equipped Gear Slot
+  const gearThumb = document.getElementById("equipped-asset-slot");
+  const gearName = document.getElementById("equipped-name");
+  const gearStat = document.getElementById("equipped-stat");
+  const unequipBtn = document.getElementById("unequip-btn");
+  const gearSummary = document.getElementById("gear-effect-summary");
+
+  if (gameState.equippedGear) {
+    gearThumb.innerHTML = `<img src="${gameState.equippedGear.image}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=100';" />`;
+    gearName.innerText = gameState.equippedGear.name;
+    gearStat.innerText = `+${gameState.equippedGear.luckBoost}x Luck Multiplier`;
+    unequipBtn.style.display = "inline-flex";
+    gearSummary.innerText = `Active Luck: +${gameState.equippedGear.luckBoost}x`;
+  } else {
+    gearThumb.innerHTML = "∅";
+    gearName.innerText = "No Gear Equipped";
+    gearStat.innerText = "+0.00x Luck Multiplier";
+    unequipBtn.style.display = "none";
+    gearSummary.innerText = "No buffs";
+  }
+
+  // Inventory Grid
+  const invContainer = document.getElementById("inv-container");
+  const bagCount = document.getElementById("bag-count");
+  invContainer.innerHTML = "";
+  bagCount.innerText = `${gameState.inventory.length} item${gameState.inventory.length !== 1 ? 's' : ''}`;
+
+  if (gameState.inventory.length === 0) {
+    invContainer.innerHTML = `<div class="subtext" style="grid-column: span 2; text-align: center; padding: 20px;">Your inventory is empty. Deploy expeditions to claim relics!</div>`;
+  } else {
+    gameState.inventory.forEach(item => {
+      const card = document.createElement("div");
+      card.className = "inv-card";
+      card.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div class="gear-thumb" style="width: 36px; height: 36px;">
+            <img src="${item.image}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=100';" />
+          </div>
+          <div style="flex: 1;">
+            <div style="font-weight: 700; font-size: 0.78rem;">${item.name}</div>
+            <div class="subtext">+${item.luckBoost}x • ${item.sellPrice} 💰</div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 4px; margin-top: 4px;">
+          <button class="btn btn-green btn-small" style="flex: 1;" onclick="equipGear(${item.instanceId})">Equip</button>
+          <button class="btn btn-gold btn-small" style="flex: 1;" onclick="sellInventoryItem(${item.instanceId})">Sell</button>
+        </div>
+      `;
+      invContainer.appendChild(card);
+    });
+  }
+}
+
+/* =========================================================================
+   10. MODALS & AUTHENTICATION
+   ========================================================================= */
+
+function closeModal(id) {
+  document.getElementById(id).style.display = "none";
+  if (id === "mission-modal") {
+    const video = document.getElementById("mission-video");
+    video.pause();
+  }
+}
+
+function openAuthModal() {
+  document.getElementById("auth-modal").style.display = "flex";
+}
+
+function switchAuthTab(signUpMode) {
+  isSignUp = signUpMode;
+  document.getElementById("tab-login").classList.toggle("active", !signUpMode);
+  document.getElementById("tab-register").classList.toggle("active", signUpMode);
+  document.getElementById("auth-submit-btn").innerText = signUpMode ? "Register Account" : "Sign In";
+}
+
+async function executeAuth() {
+  if (!supabase) {
+    alert("Supabase integration is running in offline local mode.");
+    return;
+  }
+  const email = document.getElementById("auth-email").value.trim();
+  const password = document.getElementById("auth-password").value.trim();
+  const fb = document.getElementById("auth-feedback");
+
+  if (!email || !password) {
+    fb.innerText = "Please provide both email and password.";
+    return;
+  }
+  fb.innerText = "Processing auth...";
+
+  if (isSignUp) {
+    const { error } = await supabase.auth.signUp({ email, password });
+    if (error) fb.innerText = error.message;
+    else fb.innerText = "Registration complete! Check your email.";
+  } else {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      fb.innerText = error.message;
+    } else {
+      activeUser = data.user;
+      closeModal("auth-modal");
+      loadCloudState(activeUser.id);
+    }
+  }
+}
+
+async function executeSignOut() {
+  if (supabase && activeUser) {
+    await supabase.auth.signOut();
+  }
+  activeUser = null;
+  document.getElementById("account-label").innerText = "Local Save (Guest)";
+  closeModal("auth-modal");
+}
+
+async function loadCloudState(userId) {
+  if (!supabase) return;
+  const { data } = await supabase.from("player_saves").select("save_data").eq("user_id", userId).single();
+  if (data && data.save_data) {
+    gameState = Object.assign(gameState, data.save_data);
+    document.getElementById("account-label").innerText = `Cloud: ${activeUser.email.split('@')[0]}`;
+    renderAll();
+  } else {
+    commitSave();
+  }
+}
+
+// Initial Boot
+window.addEventListener("DOMContentLoaded", () => {
+  loadLocalSave();
+  buildExpeditionsList();
+  renderAll();
+  setupPublicChat();
+  resizeCanvas();
+
+  if (supabase) {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session && session.user) {
+        activeUser = session.user;
+        document.getElementById("account-label").innerText = `Cloud: ${activeUser.email.split('@')[0]}`;
+        loadCloudState(activeUser.id);
+      }
+    });
+  }
+});
+</script>
 </body>
 </html>
